@@ -27,8 +27,8 @@ function setup() {
   // Watch for dynamically added videos
   setupMutationObserver();
 
-  // Keyboard shortcuts
-  document.addEventListener('keydown', onKeyDown);
+  // Keyboard shortcuts (capture phase: intercept before page scripts like Bilibili's danmaku toggle)
+  document.addEventListener('keydown', onKeyDown, true);
 
   // Listen for messages from popup
   chrome.runtime.onMessage.addListener(onMessage);
@@ -157,6 +157,8 @@ function onKeyDown(event) {
   // Guard: only act if there's at least one video on the page
   if (document.querySelectorAll('video').length === 0) return;
 
+  // Prevent page scripts (e.g., Bilibili danmaku toggle) from also handling this key
+  event.stopPropagation();
   event.preventDefault();
 
   if (key === 's') {
