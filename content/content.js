@@ -1,6 +1,7 @@
 const SPEED_STEP = 0.25;
 const MIN_SPEED = 0.1;
 const MAX_SPEED = 5.0;
+const FS_WRAPPER_CLASS = '__tvs_fs_wrapper';
 
 let currentSpeed = 1.0;
 let tabId = null;
@@ -31,6 +32,11 @@ function setup() {
 
   // Listen for messages from popup
   chrome.runtime.onMessage.addListener(onMessage);
+
+  // Fullscreen handling: ensure OSD is visible when video is fullscreen
+  ensureFullscreenStyles();
+  patchRequestFullscreen();
+  document.addEventListener('fullscreenchange', onFullscreenChange);
 }
 
 function loadSpeedAndApply() {
@@ -81,6 +87,60 @@ function setupMutationObserver() {
   });
 
   observer.observe(target, { childList: true, subtree: true });
+}
+
+function ensureFullscreenStyles() {
+  if (document.getElementById('__tvs_fs_styles')) return;
+  const style = document.createElement('style');
+  style.id = '__tvs_fs_styles';
+  style.textContent =
+    `.${FS_WRAPPER_CLASS}:fullscreen,.${FS_WRAPPER_CLASS}:-webkit-full-screen{` +
+    `display:flex!important;align-items:center!important;` +
+    `justify-content:center!important;background:#000!important}` +
+    `.${FS_WRAPPER_CLASS}:fullscreen>video,.${FS_WRAPPER_CLASS}:-webkit-full-screen>video{` +
+    `width:100%!important;height:100%!important;object-fit:contain!important}`;
+  (document.head || document.documentElement).appendChild(style);
+}
+
+function patchRequestFullscreen() {
+  if (HTMLVideoElement.prototype.__tvs_fs_patched) return;
+  HTMLVideoElement.prototype.__tvs_fs_patched = true;
+
+  const original = HTMLVideoElement.prototype.requestFullscreen;
+
+  HTMLVideoElement.prototype.requestFullscreen = function (options) {
+    const parent = this.parentElement;
+
+    // Already wrapped — forward fullscreen to the wrapper
+    if (parent && parent.classList.contains(FS_WRAPPER_CLASS)) {
+      return parent.requestFullscreen.call(parent, options);
+    }
+
+    // Detached node — fall back to native
+    if (!parent || !this.isConnected) {
+      return original.call(this, options);
+    }
+
+    // Wrap the video in a container so the OSD can be rendered inside it
+    const wrapper = document.createElement('div');
+    wrapper.classList.add(FS_WRAPPER_CLASS);
+    wrapper.style.position = 'relative';
+
+    parent.insertBefore(wrapper, this);
+    wrapper.appendChild(this);
+
+    return wrapper.requestFullscreen.call(wrapper, options);
+  };
+}
+
+function onFullscreenChange() {
+  if (!document.fullscreenElement) {
+    document.querySelectorAll('.' + FS_WRAPPER_CLASS).forEach(function (wrapper) {
+      if (!wrapper.querySelector('video')) {
+        wrapper.remove();
+      }
+    });
+  }
 }
 
 function onKeyDown(event) {
@@ -144,8 +204,11 @@ function showOSD(speed) {
   const osd = document.createElement('div');
   osd.id = '__tvs_osd';
   osd.textContent = `${speed.toFixed(2)}x`;
+
+  const fsElement = document.fullscreenElement;
+
   Object.assign(osd.style, {
-    position: 'fixed',
+    position: fsElement ? 'absolute' : 'fixed',
     bottom: '80px',
     right: '24px',
     background: 'rgba(0,0,0,0.75)',
@@ -161,7 +224,8 @@ function showOSD(speed) {
     opacity: '1'
   });
 
-  document.body.appendChild(osd);
+  const mountTarget = fsElement || document.body;
+  mountTarget.appendChild(osd);
 
   osdTimeout = setTimeout(() => {
     osd.style.opacity = '0';
