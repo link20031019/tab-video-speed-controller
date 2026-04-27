@@ -1,5 +1,5 @@
 const SPEED_STEP = 0.25;
-const MIN_SPEED = 0.1;
+const MIN_SPEED = 0.25;
 const MAX_SPEED = 5.0;
 const FS_WRAPPER_CLASS = '__tvs_fs_wrapper';
 

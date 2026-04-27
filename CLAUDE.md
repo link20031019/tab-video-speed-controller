@@ -24,6 +24,9 @@ popup/
 icons/                     # 扩展图标 16/32/48/128
 ```
 
+## 项目规范
+- **修正CLAUDE.md**: 完成一次对项目的关键改动后，要将这次改动的概述更新到CLAUDE.md中
+
 ## 关键设计决策
 
 - **每标签独立速度**：使用 `chrome.storage.session`，键值为 `speed_{tabId}`。session storage 是内存级存储，关闭浏览器后速度不保留
