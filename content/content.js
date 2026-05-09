@@ -143,16 +143,21 @@ function onFullscreenChange() {
   }
 }
 
+function isEditableElement(el) {
+  if (!el) return false;
+  const tag = el.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+  if (el.isContentEditable) return true;
+  return false;
+}
+
 function onKeyDown(event) {
   const key = event.key.toLowerCase();
   if (key !== 'a' && key !== 'd' && key !== 's') return;
 
   // Guard: don't intercept when user is typing in an input
-  const el = document.activeElement;
-  if (el) {
-    const tag = el.tagName.toLowerCase();
-    if (tag === 'input' || tag === 'textarea' || el.isContentEditable) return;
-  }
+  // Use composedPath[0] to reach the real target inside Shadow DOM
+  if (isEditableElement(event.composedPath()[0])) return;
 
   // Guard: only act if there's at least one video on the page
   if (document.querySelectorAll('video').length === 0) return;

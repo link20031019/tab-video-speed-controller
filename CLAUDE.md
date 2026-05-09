@@ -25,7 +25,7 @@ icons/                     # 扩展图标 16/32/48/128
 ```
 
 ## 项目规范
-- **修正CLAUDE.md**: 完成一次对项目的关键改动后，要将这次改动的概述更新到CLAUDE.md中
+- **修正CLAUDE.md**: 完成一次对项目的关键改动后，将这次改动的概述更新到CLAUDE.md中
 
 ## 关键设计决策
 
@@ -36,4 +36,4 @@ icons/                     # 扩展图标 16/32/48/128
 - **动态视频侦测**：通过 MutationObserver 监听新添加的 video 元素（SPA 换页、播放列表等场景）
 - **弹出窗口实时同步**：popup 通过 `chrome.storage.onChanged` 监听键盘触发的速度变更，保持 UI 同步
 - **全屏 OSD 显示机制**：全屏 API 只渲染 `document.fullscreenElement` 及其后代。OSD 全屏时追加到 `fullscreenElement`（`position: absolute`），非全屏时追加到 `document.body`（`position: fixed`）。对于裸 `<video>` 全屏（如原生视频控件），通过 monkey-patch `HTMLVideoElement.prototype.requestFullscreen` 自动将 video 包裹在 `<div>` 容器中，使全屏元素始终是可容纳 OSD 的容器
-- **按键冲突阻止**：使用捕获阶段监听（`addEventListener('keydown', handler, true)`）拦截快捷键，在事件传播到页面脚本之前调用 `event.stopPropagation()` + `event.preventDefault()`。防止网站自身的同名快捷键（如 Bilibili 的 D 键弹幕开关）与扩展快捷键冲突。输入框/无视频场景下不拦截，保留网站原生行为
+- **按键冲突阻止**：使用捕获阶段监听（`addEventListener('keydown', handler, true)`）拦截快捷键，在事件传播到页面脚本之前调用 `event.stopPropagation()` + `event.preventDefault()`。防止网站自身的同名快捷键（如 Bilibili 的 D 键弹幕开关）与扩展快捷键冲突。输入框/无视频场景下不拦截，保留网站原生行为。输入框检测使用 `event.composedPath()[0]` 获取真实目标元素，能穿透 Shadow DOM 边界，避免 Web Components 内的输入框被误拦截
