@@ -155,6 +155,9 @@ function onKeyDown(event) {
   const key = event.key.toLowerCase();
   if (key !== 'a' && key !== 'd' && key !== 's') return;
 
+  // Guard: don't intercept when modifier keys are held (e.g. Ctrl+D bookmark)
+  if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) return;
+
   // Guard: don't intercept when user is typing in an input
   // Use composedPath[0] to reach the real target inside Shadow DOM
   if (isEditableElement(event.composedPath()[0])) return;

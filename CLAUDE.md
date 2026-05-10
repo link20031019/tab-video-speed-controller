@@ -32,8 +32,8 @@ icons/                     # 扩展图标 16/32/48/128
 - **每标签独立速度**：使用 `chrome.storage.session`，键值为 `speed_{tabId}`。session storage 是内存级存储，关闭浏览器后速度不保留
 - **直接读写 session storage**：content script 可直接读写 `chrome.storage.session`（需 background 调用 `setAccessLevel`），无需每次都唤醒 service worker
 - **无构建工具**：纯原生 JavaScript 扩展，无 npm/webpack 等依赖
-- **键盘快捷键硬编码**：A=减速0.25，D=加速0.25，S=切换 1x/2x，内容输入框中不生效
+- **键盘快捷键硬编码**：A=减速0.25，D=加速0.25，S=切换 1x/2x，内容输入框中不生效，修饰键组合（Ctrl/Alt/Meta/Shift）不拦截
 - **动态视频侦测**：通过 MutationObserver 监听新添加的 video 元素（SPA 换页、播放列表等场景）
 - **弹出窗口实时同步**：popup 通过 `chrome.storage.onChanged` 监听键盘触发的速度变更，保持 UI 同步
 - **全屏 OSD 显示机制**：全屏 API 只渲染 `document.fullscreenElement` 及其后代。OSD 全屏时追加到 `fullscreenElement`（`position: absolute`），非全屏时追加到 `document.body`（`position: fixed`）。对于裸 `<video>` 全屏（如原生视频控件），通过 monkey-patch `HTMLVideoElement.prototype.requestFullscreen` 自动将 video 包裹在 `<div>` 容器中，使全屏元素始终是可容纳 OSD 的容器
-- **按键冲突阻止**：使用捕获阶段监听（`addEventListener('keydown', handler, true)`）拦截快捷键，在事件传播到页面脚本之前调用 `event.stopPropagation()` + `event.preventDefault()`。防止网站自身的同名快捷键（如 Bilibili 的 D 键弹幕开关）与扩展快捷键冲突。输入框/无视频场景下不拦截，保留网站原生行为。输入框检测使用 `event.composedPath()[0]` 获取真实目标元素，能穿透 Shadow DOM 边界，避免 Web Components 内的输入框被误拦截
+- **按键冲突阻止**：使用捕获阶段监听（`addEventListener('keydown', handler, true)`）拦截快捷键，在事件传播到页面脚本之前调用 `event.stopPropagation()` + `event.preventDefault()`。防止网站自身的同名快捷键（如 Bilibili 的 D 键弹幕开关）与扩展快捷键冲突。输入框/无视频场景下不拦截，保留网站原生行为。修饰键组合（Ctrl+D 收藏等）不拦截，保留浏览器原生行为。输入框检测使用 `event.composedPath()[0]` 获取真实目标元素，能穿透 Shadow DOM 边界，避免 Web Components 内的输入框被误拦截
