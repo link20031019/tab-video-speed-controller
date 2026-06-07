@@ -4,6 +4,7 @@ const MAX_SPEED = 100.0;
 const FS_WRAPPER_CLASS = '__tvs_fs_wrapper';
 
 let currentSpeed = 1.0;
+let toggleTargetSpeed = 2.0;
 let tabId = null;
 
 (function init() {
@@ -40,10 +41,19 @@ function setup() {
 }
 
 function loadSpeedAndApply() {
-  const key = `speed_${tabId}`;
-  chrome.storage.session.get([key], (result) => {
-    currentSpeed = result[key] !== undefined ? result[key] : 1.0;
+  const speedKey = `speed_${tabId}`;
+  const toggleKey = `toggleSpeed_${tabId}`;
+  chrome.storage.session.get([speedKey, toggleKey], (result) => {
+    currentSpeed = result[speedKey] !== undefined ? result[speedKey] : 1.0;
+    toggleTargetSpeed = result[toggleKey] !== undefined ? result[toggleKey] : 2.0;
     applyToAllVideos(currentSpeed);
+  });
+}
+
+function persistSpeed() {
+  chrome.storage.session.set({
+    [`speed_${tabId}`]: currentSpeed,
+    [`toggleSpeed_${tabId}`]: toggleTargetSpeed
   });
 }
 
@@ -170,19 +180,23 @@ function onKeyDown(event) {
   event.preventDefault();
 
   if (key === 's') {
-    // Toggle between 1x and 2x
-    currentSpeed = currentSpeed >= 1.5 ? 1.0 : 2.0;
+    // Toggle between 1x and remembered target speed
+    currentSpeed = currentSpeed === 1.0 ? toggleTargetSpeed : 1.0;
   } else {
     const step = key === 'a' ? -SPEED_STEP : SPEED_STEP;
     currentSpeed = parseFloat(
       Math.max(MIN_SPEED, Math.min(MAX_SPEED, currentSpeed + step)).toFixed(2)
     );
+    // Remember non-1x speed as the S-key toggle target
+    if (currentSpeed !== 1.0) {
+      toggleTargetSpeed = currentSpeed;
+    }
   }
 
   applyToAllVideos(currentSpeed);
 
-  // Persist to session storage (direct access, no background needed)
-  chrome.storage.session.set({ [`speed_${tabId}`]: currentSpeed });
+  // Persist both speed and toggle target
+  persistSpeed();
 
   // Show brief OSD feedback
   showOSD(currentSpeed);
@@ -191,7 +205,11 @@ function onKeyDown(event) {
 function onMessage(message, sender, sendResponse) {
   if (message.action === 'applySpeed') {
     currentSpeed = message.speed;
+    if (currentSpeed !== 1.0) {
+      toggleTargetSpeed = currentSpeed;
+    }
     applyToAllVideos(currentSpeed);
+    persistSpeed();
     sendResponse({ success: true });
   }
 
